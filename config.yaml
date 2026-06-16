@@ -1,0 +1,42 @@
+project:
+  - name: "shank-strut-bspline-mdo"
+  - author: "Jonathan Vollrath"
+
+units:
+  - length: mm
+  - force: N
+  - stress: MPa
+  - mass: kg
+
+geometry:
+  - symmetry:
+    - uses_symmetry: true
+    - symmetry_axis: "z-y plane"
+  - control_points:
+    - columns:
+      - surface_id # possible values: shank_strut_surface
+      - u_index # starts from 0
+      - v_index # starts from 0
+      - point_id # unique identifier for the control point
+      - x
+      - y
+      - z
+      - is_design_var # true or false depending on whether the point is a editable
+      - u_tag # optional tag for the point to help identify purpose
+      - v_tag # optional tag for the point to help identify purpose
+  - holes:
+    - columns:
+      - group_id # possible values: hole
+      - hole_id # unique identifier for the hole
+      - x
+      - y
+      - z
+      - is_design_var # true or false depending on whether the point is a editable
+      - dim # diameter of the hole in mm
+      - tag # optional tag for the hole to help identify purpose
+    - note: "The holes are defined as projections onto the surface, not strictly at their coordinates."
+  - surface_definition: bicubic B-spline surface using Cox de-Boor recursion
+    - u_degree: 3
+    - v_degree: 3
+    - u_knot_vector: [0,0,0,0, 1/9,2/9,3/9,4/9,5/9,6/9,7/9,8/9, 1,1,1,1] # for a clamped B-spline with 12 control points in u direction
+    - v_knot_vector: [0, 0, 0, 0, 1, 1, 1, 1] # for a clamped B-spline with 4 control points in v direction
