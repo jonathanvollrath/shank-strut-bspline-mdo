@@ -1,3 +1,7 @@
+# Purpose:
+
+- Optimize for stiffness
+
 # Phases:
 
 0. Problem definition and setup
@@ -52,6 +56,10 @@ The purpose of this phase of the project is to be able to input a starting desig
 - Visualization of 3D geometry
 
 ## Useful Resources
+
+## Notes
+
+- TODO: Have no implemented any checks for axis mode on hole definitions
 
 # Recommended structure:
 
