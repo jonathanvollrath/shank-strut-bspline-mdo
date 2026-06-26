@@ -8,7 +8,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = PROJECT_ROOT / 'config' / 'config.yaml'
 
 # Path to control points CSV file
-CONTROL_POINTS_CSV = PROJECT_ROOT / 'data' / 'control_points.csv'
+CONTROL_POINTS_CSV = PROJECT_ROOT / 'data' / 'user' / 'control_points.csv'
+
+# Path to mesh file
+MESH_FILE = PROJECT_ROOT / 'data' / 'gen' / 'shank_strut.msh'
 
 # Function to load default config path to external file
 def load_config(config_path=CONFIG_PATH):
