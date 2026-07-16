@@ -64,5 +64,19 @@ geometry:
     knot_vector_v: [0, 0, 0, 0, 1, 1, 1, 1]
 
 analysis:
-  u_samples: 100
-  v_samples: 40
+  samples:
+    u_samples: 100
+    v_samples: 40
+
+  mesh:
+    size:
+      default: 5.0
+      minimum: 0.5
+      maximum: 10.0
+
+    algorithm:
+      surface: 6
+
+    options:
+      optimize: true
+      curvature_based: false

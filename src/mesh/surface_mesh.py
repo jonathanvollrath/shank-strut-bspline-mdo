@@ -22,11 +22,13 @@ def add_bspline_surface_to_gmsh(primary_surface: BSplineSurface, mesh_size=None)
 
     point_tags = []
 
+    point_mesh_size = 0.0 if mesh_size is None else float(mesh_size)
+
     for j in range(n_v):
         for i in range(n_u):
             x, y, z = primary_surface.ctrl_net[i, j]
             point_tags.append(
-                gmsh.model.occ.addPoint(float(x), float(y), float(z), mesh_size or 0.0)
+                gmsh.model.occ.addPoint(float(x), float(y), float(z), point_mesh_size)
             )
 
     if primary_surface.knot_u is not None:

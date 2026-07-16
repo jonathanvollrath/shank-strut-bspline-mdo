@@ -115,8 +115,8 @@ def import_degrees_from_config(config=settings.load_config()):
     return degree_u, degree_v
 
 def import_samples_from_config(config=settings.load_config()):
-    u_num_samples = np.array(config['analysis']['u_samples'])
-    v_num_samples = np.array(config['analysis']['v_samples'])
+    u_num_samples = np.array(config['analysis']['samples']['u_samples'])
+    v_num_samples = np.array(config['analysis']['samples']['v_samples'])
     u_samples = np.linspace(0, 1, u_num_samples)
     v_samples = np.linspace(0, 1, v_num_samples)
     return u_samples, v_samples
