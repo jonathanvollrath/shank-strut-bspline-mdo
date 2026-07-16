@@ -8,10 +8,18 @@ from src.geometry.bspline_surface import import_degrees_from_config
 from src.geometry.bspline_surface import import_samples_from_config
 from src.geometry.bspline_surface import BSplineSurface
 
-from src.geometry.visualization import visualize_bspline_surface
+from src.geometry.holes import load_holes_from_csv
+from src.geometry.holes import HoleDefinition
+from src.geometry.holes import ProjectedHole
+from src.geometry.holes import project_holes
+
+from src.geometry.visualization import visualize_shank_strut
 
 from src.mesh.surface_mesh import knot_to_unique_multiplicities
 from src.mesh.surface_mesh import add_bspline_surface_to_gmsh
+
+from src.mesh.hole_mesh import projected_holes_to_loops
+from src.mesh.hole_mesh import add_hole_wires_to_surface
 
 
 def main():
@@ -30,11 +38,30 @@ def main():
         deg_v=degree_v
     )
 
+    # Quick visualization of BSpline surface
+    u_samples, v_samples = import_samples_from_config()
+    surface_eval_pts = prim_surface.evaluate(u_samples, v_samples)
+
+    hole_defs = load_holes_from_csv()
+    projected_holes = project_holes(prim_surface, hole_defs)
+
+    visualize_shank_strut(surface_eval_pts, ctrl_net, hole_definitions=hole_defs, projected_holes=projected_holes)
+
     # Recreate BSplineSurface using Gmsh
     gmsh.initialize()
     gmsh.model.add("shank_strut")
 
+    drilled_hole_loops = projected_holes_to_loops(prim_surface, projected_holes)
+
     surface_tag = add_bspline_surface_to_gmsh(prim_surface)
+    surface_tag, hole_curves, hole_wires = add_hole_wires_to_surface(
+        surface_tag=surface_tag,
+        hole_loops=drilled_hole_loops,
+        knot_u=knot_vector_u,
+        knot_v=knot_vector_v,
+        degree_u=degree_u,
+        degree_v=degree_v,
+    )
 
     gmsh.model.addPhysicalGroup(2, [surface_tag], name="primary_surface")
 
@@ -43,9 +70,6 @@ def main():
     gmsh.open(str(MESH_FILE))
     gmsh.fltk.run()
     gmsh.finalize()
-
-    # Visualize the BSpline surface
-    # visualize_bspline_surface(surface_eval_pts, ctrl_net)
 
 if __name__ == "__main__":
     main()

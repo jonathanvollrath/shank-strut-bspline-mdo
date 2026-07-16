@@ -43,6 +43,7 @@ def load_holes_from_csv(file_path: str | Path | None = None) -> list[HoleDefinit
         "axis_x",
         "axis_y",
         "axis_z",
+        "include",
         "tag",
     }
 
@@ -52,6 +53,13 @@ def load_holes_from_csv(file_path: str | Path | None = None) -> list[HoleDefinit
 
     df["hole_id"] = df["hole_id"].str.strip()
     df["tag"] = df["tag"].str.strip()
+    df["include"] = (
+        df["include"]
+        .astype(str)
+        .str.strip()
+        .str.lower()
+        .map({"true": True, "false": False})
+    )
 
     df["is_design_var"] = (
         df["is_design_var"]
@@ -89,20 +97,21 @@ def load_holes_from_csv(file_path: str | Path | None = None) -> list[HoleDefinit
         axes,
         diameters,
     ):
-        holes.append(
-            HoleDefinition(
-                hole_id=row.hole_id,
-                center_xyz=center_xyz,
-                axis_xyz=axis_xyz,
-                diameter=float(diameter),
-                is_design_var=bool(row.is_design_var),
-                tag=row.tag if isinstance(row.tag, str) and row.tag else None,
+        if row.include:
+            holes.append(
+                HoleDefinition(
+                    hole_id=row.hole_id,
+                    center_xyz=center_xyz,
+                    axis_xyz=axis_xyz,
+                    diameter=float(diameter),
+                    is_design_var=bool(row.is_design_var),
+                    tag=row.tag if isinstance(row.tag, str) and row.tag else None,
+                )
             )
-        )
 
     return holes
 
-def project_hole_along_axis(surface: BSplineSurface, hole: HoleDefinition, course_samples=15, tol=1e-6):
+def project_hole_along_axis(surface: BSplineSurface, hole: HoleDefinition, coarse_samples=15, tol=1e-6):
 
     center = np.asarray(hole.center_xyz)
     axis = np.asarray(hole.axis_xyz)
@@ -112,17 +121,17 @@ def project_hole_along_axis(surface: BSplineSurface, hole: HoleDefinition, cours
         raise ValueError("Hole axis cannot be zero")
     axis = axis / axis_norm
 
-    u_min = surface.knot_vector_u[surface.degree_u]
-    u_max = surface.knot_vector_u[-surface.degree_u - 1]
-    v_min = surface.knot_vector_v[surface.degree_v]
-    v_max = surface.knot_vector_v[-surface.degree_v - 1]
+    u_min = surface.knot_u[surface.deg_u]
+    u_max = surface.knot_u[-surface.deg_u - 1]
+    v_min = surface.knot_v[surface.deg_v]
+    v_max = surface.knot_v[-surface.deg_v - 1]
 
     best_dis = np.inf
     init_guess = None
 
-    for u in np.linspace(u_min, u_max, course_samples):
-        for v in np.linspace(v_min, v_max, course_samples):
-            surface_point = np.asarray(surface.evaluate(u, v))
+    for u in np.linspace(u_min, u_max, coarse_samples):
+        for v in np.linspace(v_min, v_max, coarse_samples):
+            surface_point = np.asarray(surface.evaluate_single(u, v))
 
             offset = surface_point - center
             t = np.dot(offset, axis)
@@ -136,7 +145,7 @@ def project_hole_along_axis(surface: BSplineSurface, hole: HoleDefinition, cours
 
     def residual(parameters):
         u, v, t = parameters
-        surface_point = np.asarray(surface.evaluate(u, v))
+        surface_point = np.asarray(surface.evaluate_single(u, v))
         axis_point = center + t * axis
         return surface_point - axis_point
 
@@ -163,7 +172,7 @@ def project_hole_along_axis(surface: BSplineSurface, hole: HoleDefinition, cours
         u=float(u),
         v=float(v),
         axis_distance=float(t),
-        surface_xyz=np.asarray(surface.evaluate(u, v)),
+        surface_xyz=np.asarray(surface.evaluate_single(u, v)),
         projection_error=float(error),
     )
 

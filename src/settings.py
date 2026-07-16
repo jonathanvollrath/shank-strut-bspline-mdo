@@ -10,6 +10,9 @@ CONFIG_PATH = PROJECT_ROOT / 'config' / 'config.yaml'
 # Path to control points CSV file
 CONTROL_POINTS_CSV = PROJECT_ROOT / 'data' / 'user' / 'control_points.csv'
 
+# Path to holes CSV file
+HOLES_CSV_PATH = PROJECT_ROOT / 'data' / 'user' / 'holes.csv'
+
 # Path to mesh file
 MESH_FILE = PROJECT_ROOT / 'data' / 'gen' / 'shank_strut.msh'
 
