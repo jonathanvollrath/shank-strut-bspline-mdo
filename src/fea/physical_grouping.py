@@ -212,3 +212,69 @@ def print_physical_groups(
         f"All holes: curve tags "
         f"{groups.all_holes.entity_tags}"
     )
+
+def color_fea_physical_groups(
+    groups: GmshPhysicalGroups,
+) -> None:
+    # Structure
+    gmsh.model.setColor(
+        [(2, tag) for tag in groups.structure.entity_tags],
+        210, 210, 210, 255,
+    )
+
+    # Hole curves
+    hole_colors = [
+        (50, 120, 230),
+        (40, 180, 100),
+        (220, 140, 30),
+        (160, 80, 200),
+        (30, 180, 180),
+    ]
+
+    for index, group in enumerate(groups.holes_by_id.values()):
+        red, green, blue = hole_colors[index % len(hole_colors)]
+
+        gmsh.model.setColor(
+            [(1, tag) for tag in group.entity_tags],
+            red, green, blue, 255,
+        )
+
+    # Symmetry last so it is red if any overlap exists.
+    gmsh.model.setColor(
+        [(1, tag) for tag in groups.symmetry.entity_tags],
+        230, 50, 50, 255,
+    )
+
+    # Hide CAD geometry.
+    gmsh.option.setNumber("Geometry.Points", 0)
+    gmsh.option.setNumber("Geometry.Curves", 0)
+    gmsh.option.setNumber("Geometry.Surfaces", 0)
+
+    # Show the colored mesh.
+    gmsh.option.setNumber("Mesh.Points", 0)
+    gmsh.option.setNumber("Mesh.Lines", 1)
+    gmsh.option.setNumber("Mesh.SurfaceEdges", 0)
+    gmsh.option.setNumber("Mesh.SurfaceFaces", 1)
+    gmsh.option.setNumber("Mesh.LineWidth", 4)
+
+def show_only_physical_group(
+    group: PhysicalGroup,
+) -> None:
+    # Hide all geometric entities.
+    gmsh.model.setVisibility(
+        gmsh.model.getEntities(),
+        0,
+        recursive=True,
+    )
+
+    # Show only the group's entities.
+    entities = [
+        (group.dimension, tag)
+        for tag in group.entity_tags
+    ]
+
+    gmsh.model.setVisibility(
+        entities,
+        1,
+        recursive=True,
+    )
