@@ -1,17 +1,14 @@
 import gmsh
-from src.mesh.mesh_config import configure_gmsh_mesh, load_mesh_config
+
 from src.settings import CONTROL_POINTS_CSV, MESH_FILE
 from src.geometry.bspline_surface import import_control_points_from_csv
-
 from src.geometry.bspline_surface import import_knot_vectors_from_config, import_degrees_from_config, import_samples_from_config, BSplineSurface
-
 from src.geometry.holes import load_holes_from_csv, HoleDefinition, ProjectedHole, project_holes
-
 from src.geometry.visualization import visualize_shank_strut
-
+from src.mesh.mesh_config import configure_gmsh_mesh, load_mesh_config
 from src.mesh.surface_mesh import knot_to_unique_multiplicities, add_bspline_surface_to_gmsh
-
 from src.mesh.hole_mesh import projected_holes_to_loops, add_hole_wires_to_surface
+from src.fea.physical_grouping import PhysicalGroup, GmshPhysicalGroups, GmshHoleRegion, add_fea_physical_groups, print_physical_groups
 
 
 def main():
@@ -51,7 +48,7 @@ def main():
         configure_gmsh_mesh(mesh_config)
 
         surface_tag = add_bspline_surface_to_gmsh(prim_surface)
-        surface_tag, hole_curves, hole_wires = add_hole_wires_to_surface(
+        surface_tag, hole_curves_tags, hole_wires_tags = add_hole_wires_to_surface(
             surface_tag=surface_tag,
             hole_loops=drilled_hole_loops,
             knot_u=knot_vector_u,
@@ -60,7 +57,34 @@ def main():
             degree_v=degree_v,
         )
 
-        gmsh.model.addPhysicalGroup(2, [surface_tag], name="primary_surface")
+        gmsh.model.occ.synchronize()
+
+        hole_regions = [
+            GmshHoleRegion(
+                hole_id=loop.hole_id,
+                curve_tags=(curve_tag,),
+            )
+            for loop, curve_tag in zip(
+                drilled_hole_loops,
+                hole_curves_tags,
+                strict=True
+            )
+        ]
+
+        physical_groups = add_fea_physical_groups(
+            surface_tag=surface_tag,
+            hole_regions=hole_regions,
+            x_value=0.0,
+            tolerance=1e-5
+        )
+
+        print("Physical groups created:")
+        print_physical_groups(physical_groups)
+
+        gmsh.option.setNumber("Geometry.Curves", 1)
+        gmsh.option.setNumber("Geometry.CurveLabels", 1)
+        gmsh.option.setNumber("Mesh.SurfaceFaces", 1)
+
 
         gmsh.model.mesh.generate(2)
         gmsh.write(str(MESH_FILE))
