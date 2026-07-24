@@ -14,7 +14,8 @@ CONTROL_POINTS_CSV = PROJECT_ROOT / 'data' / 'user' / 'control_points.csv'
 HOLES_CSV_PATH = PROJECT_ROOT / 'data' / 'user' / 'holes.csv'
 
 # Path to mesh file
-MESH_FILE = PROJECT_ROOT / 'data' / 'gen' / 'shank_strut.msh'
+MESH_MSH_FILE = PROJECT_ROOT / 'data' / 'gen' / 'shank_strut.msh'
+MESH_INP_FILE = PROJECT_ROOT / 'data' / 'gen' / 'shank_strut_mesh.inp'
 
 # Function to load default config path to external file
 def load_config(config_path=CONFIG_PATH):

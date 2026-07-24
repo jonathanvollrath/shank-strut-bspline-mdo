@@ -1,6 +1,7 @@
 import gmsh
+import numpy as np
 
-from src.settings import CONTROL_POINTS_CSV, MESH_FILE
+from src.settings import CONTROL_POINTS_CSV, MESH_MSH_FILE, MESH_INP_FILE
 from src.geometry.bspline_surface import import_control_points_from_csv
 from src.geometry.bspline_surface import import_knot_vectors_from_config, import_degrees_from_config, import_samples_from_config, BSplineSurface
 from src.geometry.holes import load_holes_from_csv, HoleDefinition, ProjectedHole, project_holes
@@ -48,7 +49,7 @@ def main():
         configure_gmsh_mesh(mesh_config)
 
         surface_tag = add_bspline_surface_to_gmsh(prim_surface)
-        surface_tag, hole_curves_tags, hole_wires_tags = add_hole_wires_to_surface(
+        surface_tag, hole_curves_tags, hole_curves_by_wires_tags = add_hole_wires_to_surface(
             surface_tag=surface_tag,
             hole_loops=drilled_hole_loops,
             knot_u=knot_vector_u,
@@ -62,7 +63,7 @@ def main():
         hole_regions = [
             GmshHoleRegion(
                 hole_id=loop.hole_id,
-                curve_tags=(curve_tag,),
+                curve_tags=curve_tag,
             )
             for loop, curve_tag in zip(
                 drilled_hole_loops,
@@ -70,6 +71,10 @@ def main():
                 strict=True
             )
         ]
+
+        print("Hole regions created:")
+        for hole_region in hole_regions:
+            print(f"Hole ID: {hole_region.hole_id}, Curve Tags: {hole_region.curve_tags}")
 
         physical_groups = add_fea_physical_groups(
             surface_tag=surface_tag,
@@ -82,7 +87,12 @@ def main():
         print_physical_groups(physical_groups)
 
         gmsh.model.mesh.generate(2)
-        gmsh.write(str(MESH_FILE))
+
+        gmsh.option.setNumber("Mesh.SaveGroupsOfElements", -100)
+        gmsh.option.setNumber("Mesh.SaveGroupsOfNodes", -10)
+
+        gmsh.write(str(MESH_MSH_FILE))
+        gmsh.write(str(MESH_INP_FILE))
 
         # show_only_physical_group(physical_groups.symmetry)
         color_fea_physical_groups(physical_groups)

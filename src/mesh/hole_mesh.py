@@ -300,7 +300,10 @@ def add_hole_wires_to_surface(
     degree_v: int,
     residual_tol: float = 1e-5,
     remove_original_surface: bool = True,
-) -> tuple[int, list[int], list[int]]:
+) -> tuple[
+        int,
+        list[tuple[int, ...]],
+        list[int]]:
 
     if not hole_loops:
         return surface_tag, [], []
@@ -345,12 +348,20 @@ def add_hole_wires_to_surface(
 
     gmsh.model.occ.synchronize()
 
-    wire_tags, curves_by_wire = gmsh.model.occ.getCurveLoops(
+    wire_tags, curves_by_wire_tags = gmsh.model.occ.getCurveLoops(
         trimmed_surface_tag
     )
 
+    trimmed_hole_curves_tags: list[tuple[int, ...]] = [
+        tuple(abs(int(tag)) for tag in curve_tags)
+        for curve_tags in curves_by_wire_tags[1:]
+    ]
+    trimmed_hole_wire_tags: list[int] = [
+        int(tag) for tag in wire_tags[1:]
+    ]
+
     for i, (wire_tag, curve_tags) in enumerate(
-        zip(wire_tags, curves_by_wire)
+        zip(wire_tags, curves_by_wire_tags)
     ):
         loop_type = "outer boundary" if i == 0 else f"hole {i}"
 
@@ -371,6 +382,6 @@ def add_hole_wires_to_surface(
 
     return (
         int(trimmed_surface_tag),
-        hole_curve_tags,
-        hole_wire_tags,
+        trimmed_hole_curves_tags,
+        trimmed_hole_wire_tags,
     )
