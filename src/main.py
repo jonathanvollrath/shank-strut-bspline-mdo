@@ -10,7 +10,7 @@ from src.mesh.mesh_config import configure_gmsh_mesh, load_mesh_config
 from src.mesh.surface_mesh import knot_to_unique_multiplicities, add_bspline_surface_to_gmsh
 from src.mesh.hole_mesh import projected_holes_to_loops, add_hole_wires_to_surface
 from src.fea.physical_grouping import PhysicalGroup, GmshPhysicalGroups, GmshHoleRegion, add_fea_physical_groups, print_physical_groups, color_fea_physical_groups, show_only_physical_group
-from src.fea.analysis_setup import assign_material, convert_surface_elements_to_shells
+from src.fea.analysis_setup import assign_material, convert_surface_elements_to_shells, create_analysis_deck
 
 
 def main():
@@ -92,13 +92,14 @@ def main():
         gmsh.option.setNumber("Mesh.SaveGroupsOfElements", -100)
         gmsh.option.setNumber("Mesh.SaveGroupsOfNodes", -10)
 
-        gmsh.write(str(MESH_MSH_FILE))
+        # gmsh.write(str(MESH_MSH_FILE))
         gmsh.write(str(MESH_INP_FILE))
 
         # show_only_physical_group(physical_groups.symmetry)
         # color_fea_physical_groups(physical_groups)
 
         convert_surface_elements_to_shells()
+        create_analysis_deck()
         assign_material(elset_name=physical_groups.structure.name)
 
         gmsh.fltk.run()
