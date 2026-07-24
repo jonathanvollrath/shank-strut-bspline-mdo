@@ -1,0 +1,119 @@
+import re
+from pathlib import Path
+from dataclasses import dataclass
+from src.settings import MESH_INP_FILE, load_config
+
+@dataclass(frozen=True)
+class MaterialProperties:
+    name: str
+    youngs_modulus: float
+    poissons_ratio: float
+    density: float
+
+def load_material_properties(config=load_config()) -> MaterialProperties:
+    material_dict = config["analysis"]["material"]
+    return MaterialProperties(
+        name=material_dict["name"],
+        youngs_modulus=material_dict["youngs_modulus"],
+        poissons_ratio=material_dict["poissons_ratio"],
+        density=material_dict["density"],
+    )
+
+def convert_surface_elements_to_shells(inp_path: str | Path = MESH_INP_FILE) -> None:
+    inp_path = Path(inp_path)
+    text = inp_path.read_text()
+
+    replacements = {
+        "CPS3": "S3",
+        "CPS4": "S4",
+        "CPS6": "S6",
+        "CPS8": "S8",
+    }
+
+    total = 0
+
+    for old, new in replacements.items():
+        pattern = (
+            rf"(?im)^(\s*\*ELEMENT\b[^\n]*"
+            rf"\bTYPE\s*=\s*){old}\b"
+        )
+
+        text, count = re.subn(
+            pattern,
+            rf"\g<1>{new}",
+            text,
+        )
+
+        total += count
+
+    if total == 0:
+        raise ValueError(
+            f"No elements of types {list(replacements.keys())} found in "
+            f"{inp_path}. Ensure that the input file contains these element "
+            f"types before attempting to convert them to shell elements."
+        )
+
+    inp_path.write_text(text, encoding="utf-8")
+    print(f"Converted {total} element types to shell elements in {inp_path}.")
+
+def assign_material(
+    elset_name: str,
+    inp_path: str | Path = MESH_INP_FILE,
+    config=load_config(),
+) -> None:
+
+    inp_path = Path(inp_path)
+    text = inp_path.read_text()
+
+    thickness = float(config["geometry"]["thickness"])
+
+    material_properties = load_material_properties(config)
+    thickness = config["geometry"]["thickness"]
+
+    generated_block = f"""\
+** BEGIN GENERATED MATERIAL
+*MATERIAL, NAME={material_properties.name}
+*ELASTIC
+{material_properties.youngs_modulus}, {material_properties.poissons_ratio}
+
+*SHELL SECTION, ELSET={elset_name}, MATERIAL={material_properties.name}
+{thickness}
+** END GENERATED MATERIAL
+    """
+
+    block_pattern = re.compile(
+        r"\*\* BEGIN GENERATED MATERIAL.*?"
+        r"\*\* END GENERATED MATERIAL\s*",
+        flags=re.DOTALL,
+    )
+
+    if block_pattern.search(text):
+        text = block_pattern.sub(
+            generated_block + "\n",
+            text,
+            count=1
+        )
+    else:
+        step_match = re.search(
+            r"(?im)^\s*\*STEP\b",
+            text,
+        )
+
+        if step_match:
+            insert_index = step_match.start()
+
+            text = (
+                text[:insert_index].rstrip()
+                + "\n\n"
+                + generated_block
+                + "\n"
+                + text[insert_index:].lstrip()
+            )
+        else:
+            text = (
+                text.rstrip()
+                + "\n\n"
+                + generated_block
+            )
+    inp_path.write_text(text.rstrip() + "\n", encoding="utf-8")
+

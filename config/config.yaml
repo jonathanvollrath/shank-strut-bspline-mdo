@@ -12,6 +12,7 @@ geometry:
   symmetry:
     uses_symmetry: true
     symmetry_axis: "z-y plane"
+  thickness: 3.0 # mm
 
   control_points:
     columns:
@@ -80,3 +81,9 @@ analysis:
     options:
       optimize: true
       curvature_based: false
+
+  material:
+    name: "Aluminum Alloy 6061-T6"
+    youngs_modulus: 68.9e9 # Pa
+    poissons_ratio: 0.33
+    density: 2700 # kg/m^3
