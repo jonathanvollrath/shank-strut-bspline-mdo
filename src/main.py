@@ -1,7 +1,7 @@
 import gmsh
 import numpy as np
 
-from src.fea.loads import configure_hole_loads, write_loads
+from src.fea.loads import configure_hole_loads, get_calculix_surface_faces, write_loads, get_physical_group_edges
 from src.settings import CONTROL_POINTS_CSV, MESH_MSH_FILE, MESH_INP_FILE
 from src.geometry.bspline_surface import import_control_points_from_csv
 from src.geometry.bspline_surface import import_knot_vectors_from_config, import_degrees_from_config, import_samples_from_config, BSplineSurface
@@ -110,7 +110,12 @@ def main():
         hole_loads = configure_hole_loads(holes=physical_groups.holes_by_id)
         print("Hole loads configured:")
         for load in hole_loads:
-            print(f"Load Name: {load.load_name}, Magnitude: {load.magnitude}, Direction: {load.direction}, Position: {load.position}\n")
+            print(f"Load Name: {load.load_name}, Magnitude: {load.magnitude}, Direction: {load.direction}, Position: {load.position}, Node Groups: {load.node_groups}\n")
+
+        edges: set[frozenset[int]] = get_physical_group_edges(physical_groups.holes_by_id["bowden_1"])
+        # print(edges)
+        faces: list[tuple[int, str]] = get_calculix_surface_faces(boundary_edges=edges, surface_tag=physical_groups.structure.entity_tags[0])
+        # print(faces)
 
         write_loads(hole_loads)
 

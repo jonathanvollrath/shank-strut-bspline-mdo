@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import gmsh
 import numpy as np
 
-from src.fea.physical_grouping import HolePhysicalGroup
+from src.fea.physical_grouping import HolePhysicalGroup, PhysicalGroup
 from src.mesh.hole_mesh import DrilledHoleLoop
 from src.settings import ANALYSIS_DEF_INP_FILE, MESH_INP_FILE, load_config
 
@@ -14,6 +14,7 @@ class HoleLoad:
     magnitude: float
     direction: np.ndarray
     position: np.ndarray
+    node_groups: list[str]
     ref_node: int | None = None
 
 def normalize_vector(vector: tuple[float, float, float]) -> np.ndarray:
@@ -50,18 +51,109 @@ def configure_hole_loads(holes: dict[str, HolePhysicalGroup], config=load_config
         magnitude = hole_load_config["magnitude"]
         direction = normalize_vector(hole_load_config["direction"])
         position = hole_load_config["position"]
+        node_groups = hole_load_config["node_groups"]
 
         hole_load = HoleLoad(
             load_name=load_id,
             magnitude=magnitude,
             direction=direction,
             position=position,
+            node_groups=node_groups,
             ref_node=ref_node,
         )
         hole_loads.append(hole_load)
         ref_node += 1
 
     return hole_loads
+
+def get_physical_group_edges(physical_group: PhysicalGroup) -> set[frozenset[int]]:
+
+    edges: set[frozenset[int]] = set()
+
+    for curve_tag in physical_group.entity_tags:
+
+        element_types, _, node_tags_by_type = (
+            gmsh.model.mesh.getElements(dim=1, tag=curve_tag)
+        )
+
+        for element_type, node_tags in zip(element_types, node_tags_by_type):
+
+            properties = gmsh.model.mesh.getElementProperties(element_type)
+
+            num_nodes = properties[3]
+
+            if num_nodes != 2:
+                raise ValueError(
+                    f"Unexpected number of nodes for element type {element_type} "
+                    f"on curve {curve_tag}. Expected 2, got {num_nodes}."
+                )
+
+            connectivity = np.asarray(
+                node_tags, dtype=int
+            ).reshape(-1, 2)
+
+            for n1, n2 in connectivity:
+                edges.add(
+                    frozenset((int(n1), int(n2))
+                    )
+                )
+    return edges
+
+def get_calculix_surface_faces(
+    boundary_edges: set[frozenset[int]],
+    surface_tag: int,
+) -> list[tuple[int, str]]:
+
+    faces: list[tuple[int, str]] = []
+
+    element_types, element_tags_by_type, node_tags_by_type = (
+        gmsh.model.mesh.getElements(
+            dim=2,
+            tag=surface_tag,
+        )
+    )
+
+    for element_type, element_tags, node_tags in zip(
+        element_types,
+        element_tags_by_type,
+        node_tags_by_type,
+    ):
+        properties = gmsh.model.mesh.getElementProperties(
+            element_type
+        )
+
+        num_nodes = properties[3]
+
+        if num_nodes != 3:
+            continue
+
+        connectivity = np.asarray(
+            node_tags,
+            dtype=int,
+        ).reshape(-1, 3)
+
+        for element_tag, nodes in zip(element_tags, connectivity):
+
+            n1, n2, n3 = map(int, nodes)
+            element_edges = (
+                ("S3", frozenset((n1, n2))),
+                ("S4", frozenset((n2, n3))),
+                ("S5", frozenset((n3, n1))),
+            )
+
+            for face_name, edge in element_edges:
+                if edge in boundary_edges:
+                    faces.append(
+                        (int(element_tag), face_name)
+                    )
+
+    if len(faces) != len(boundary_edges):
+        raise ValueError(
+            f"Mismatch between number of boundary edges ({len(boundary_edges)}) "
+            f"and number of faces found ({len(faces)})."
+        )
+
+    return faces
 
 def write_loads(
     hole_loads: list[HoleLoad],
