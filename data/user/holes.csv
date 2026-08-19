@@ -1,6 +1,6 @@
-hole_id,x,y,z,is_design_var,diameter,axis_mode,axis_x,axis_y,axis_z,include,tag
-ankle_rotation_axis,0,0,0,false,3.4,global,1,0,0,true,central_axis
-bowden_1,5,310,50,false,3.4,global,0,0,1,true,
-bowden_2,-5,310,50,false,3.4,global,0,0,1,false,
-bowden_3,5,300,50,false,3.4,global,0,0,1,true,
-bowden_4,-5,300,50,false,3.4,global,0,0,1,false,
+hole_id            , x , y  , z , is_design_var, diameter, axis_mode, axis_x, axis_y, axis_z, include, tag
+ankle_rotation_axis, 0 ,   0,  0, false        ,      3.4, global   ,      1,      0,      0, true   , central_axis
+bowden_1           , 5 , 310, 50, false        ,      3.4, global   ,      0,      0,      1, true   ,
+bowden_2           , -5, 310, 50, false        ,      3.4, global   ,      0,      0,      1, false  ,
+bowden_3           , 5 , 300, 50, false        ,      3.4, global   ,      0,      0,      1, true   ,
+bowden_4           , -5, 300, 50, false        ,      3.4, global   ,      0,      0,      1, false  ,

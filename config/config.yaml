@@ -87,3 +87,11 @@ analysis:
     youngs_modulus: 68.9e9 # Pa
     poissons_ratio: 0.33
     density: 2700 # kg/m^3
+
+  loads:
+    bowden_attachment_load:
+      type: "point_load"
+      node_groups: ["bowden_1", "bowden_3"]
+      magnitude: 700.0 # N
+      direction: [0, -1, 0] # downward relative to the wearer
+      position: [0, 305, 53.5]

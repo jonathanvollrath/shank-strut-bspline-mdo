@@ -1,6 +1,7 @@
 import gmsh
 import numpy as np
 
+from src.fea.loads import configure_hole_loads, write_loads
 from src.settings import CONTROL_POINTS_CSV, MESH_MSH_FILE, MESH_INP_FILE
 from src.geometry.bspline_surface import import_control_points_from_csv
 from src.geometry.bspline_surface import import_knot_vectors_from_config, import_degrees_from_config, import_samples_from_config, BSplineSurface
@@ -65,6 +66,7 @@ def main():
             GmshHoleRegion(
                 hole_id=loop.hole_id,
                 curve_tags=curve_tag,
+                xyz_center=loop.center_xyz
             )
             for loop, curve_tag in zip(
                 drilled_hole_loops,
@@ -73,9 +75,9 @@ def main():
             )
         ]
 
-        print("Hole regions created:")
-        for hole_region in hole_regions:
-            print(f"Hole ID: {hole_region.hole_id}, Curve Tags: {hole_region.curve_tags}")
+        # print("Hole regions created:")
+        # for hole_region in hole_regions:
+        #     print(f"Hole ID: {hole_region.hole_id}, Curve Tags: {hole_region.curve_tags}")
 
         physical_groups = add_fea_physical_groups(
             surface_tag=surface_tag,
@@ -84,8 +86,11 @@ def main():
             tolerance=1e-5
         )
 
-        print("Physical groups created:")
-        print_physical_groups(physical_groups)
+        # print("Physical groups created:")
+        # print_physical_groups(physical_groups)
+        print("Physical hole groups created:")
+        for hole_id, hole_group in physical_groups.holes_by_id.items():
+            print(f"Hole ID: {hole_id}, Physical Group Name: {hole_group.name}, Physical Tag: {hole_group.physical_tag}, Entity Tags: {hole_group.entity_tags}, Center: {hole_group.xyz_center}\n")
 
         gmsh.model.mesh.generate(2)
 
@@ -101,6 +106,13 @@ def main():
         convert_surface_elements_to_shells()
         create_analysis_deck()
         assign_material(elset_name=physical_groups.structure.name)
+
+        hole_loads = configure_hole_loads(holes=physical_groups.holes_by_id)
+        print("Hole loads configured:")
+        for load in hole_loads:
+            print(f"Load Name: {load.load_name}, Magnitude: {load.magnitude}, Direction: {load.direction}, Position: {load.position}\n")
+
+        write_loads(hole_loads)
 
         gmsh.fltk.run()
 

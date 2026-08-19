@@ -1,11 +1,13 @@
 from dataclasses import dataclass
 import re
 import gmsh
+import numpy as np
 
 @dataclass(frozen=True)
 class GmshHoleRegion:
     hole_id: str
     curve_tags: tuple[int, ...]
+    xyz_center: np.ndarray
 
 @dataclass(frozen=True)
 class PhysicalGroup:
@@ -15,10 +17,14 @@ class PhysicalGroup:
     entity_tags: tuple[int, ...]
 
 @dataclass(frozen=True)
+class HolePhysicalGroup(PhysicalGroup):
+    xyz_center: np.ndarray
+
+@dataclass(frozen=True)
 class GmshPhysicalGroups:
     structure: PhysicalGroup
     symmetry: PhysicalGroup
-    holes_by_id: dict[str, PhysicalGroup]
+    holes_by_id: dict[str, HolePhysicalGroup]
     all_holes: PhysicalGroup
 
 def sanitize_physical_name(name: str) -> str:
@@ -28,7 +34,8 @@ def sanitize_physical_name(name: str) -> str:
 def add_named_physical_group(
     dimension: int,
     entity_tags: list[int] | tuple[int, ...],
-    name: str
+    name: str,
+    xyz_center: np.ndarray | None = None,
 ) -> PhysicalGroup:
 
     unique_tags = tuple(
@@ -56,6 +63,16 @@ def add_named_physical_group(
     physical_tag = gmsh.model.addPhysicalGroup(dimension, list(unique_tags),)
 
     gmsh.model.setPhysicalName(dimension, physical_tag, name)
+
+    if xyz_center is not None:
+        return HolePhysicalGroup(
+            dimension=dimension,
+            physical_tag=physical_tag,
+            name=name,
+            entity_tags=unique_tags,
+            xyz_center=xyz_center,
+        )
+
 
     return PhysicalGroup(
         dimension=dimension,
@@ -133,7 +150,7 @@ def add_fea_physical_groups(
         name="structure"
     )
 
-    holes_by_id: dict[str, GmshHoleRegion] = {}
+    holes_by_id: dict[str, HolePhysicalGroup] = {}
     all_hole_curve_tags: set[int] = set()
 
     for hole_region in hole_regions:
@@ -151,7 +168,8 @@ def add_fea_physical_groups(
         holes_by_id[hole_region.hole_id] = (add_named_physical_group(
                 dimension=1,
                 entity_tags=curve_tags,
-                name=physical_name
+                name=physical_name,
+                xyz_center=hole_region.xyz_center
             )
         )
 

@@ -84,22 +84,27 @@ def assign_material(
     thickness = float(config["geometry"]["thickness"])
 
     material_properties = load_material_properties(config)
-    thickness = config["geometry"]["thickness"]
 
     generated_block = f"""\
+** --------------------------------------------------
 ** BEGIN GENERATED MATERIAL
+** --------------------------------------------------
 *MATERIAL, NAME={material_properties.name}
 *ELASTIC
 {material_properties.youngs_modulus}, {material_properties.poissons_ratio}
 
 *SHELL SECTION, ELSET={elset_name}, MATERIAL={material_properties.name}
 {thickness}
+** --------------------------------------------------
 ** END GENERATED MATERIAL
-    """
+** --------------------------------------------------
+"""
 
     block_pattern = re.compile(
+        r"\*\* --------------------------------------------------\s*"
         r"\*\* BEGIN GENERATED MATERIAL.*?"
-        r"\*\* END GENERATED MATERIAL\s*",
+        r"\*\* END GENERATED MATERIAL\s*"
+        r"\*\* --------------------------------------------------\s*",
         flags=re.DOTALL,
     )
 
